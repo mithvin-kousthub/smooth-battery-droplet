@@ -1,0 +1,39 @@
+{
+  "id": "smooth-battery",
+  "name": "Battery",
+  "version": "1.0.0",
+  "summary": "Smooth battery indicator and percentage for Droppy",
+  "description": "A sleek, smooth battery indicator with live percentage, charging status, and power metrics.\n\nDesigned natively for Droppy's shelf and the Dynamic Island, with real-time macOS power tracking, smooth liquid fill animations, and zero-jitter monospaced percentage readouts.",
+  "category": "Productivity",
+  "kit": {
+    "abi": 1,
+    "minAPI": "1.6.0"
+  },
+  "minAppVersion": "15.3.0",
+  "capabilities": [
+    "shelf-read"
+  ],
+  "surfaces": [
+    "shelf-widget",
+    "live-activity",
+    "settings-pane"
+  ],
+  "icon": "Battery.icon",
+  "creator": {
+    "name": "Mithvin Kousthub C M",
+    "kind": "community",
+    "url": "https://github.com/mithvin-kousthub",
+    "avatar": "Creator.png"
+  },
+  "source": {
+    "repository": "https://github.com/mithvin-kousthub/smooth-battery-droplet",
+    "license": "MIT"
+  },
+  "keywords": [
+    "battery",
+    "power",
+    "charge",
+    "percentage",
+    "energy"
+  ]
+}

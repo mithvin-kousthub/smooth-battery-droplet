@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "droppykit": {
+      "command": "/Users/emvin/.gemini/antigravity/scratch/droppykit/Scripts/droppykit",
+      "args": [
+        "mcp",
+        "--package",
+        "/Users/emvin/.gemini/antigravity/scratch/battery"
+      ]
+    }
+  }
+}

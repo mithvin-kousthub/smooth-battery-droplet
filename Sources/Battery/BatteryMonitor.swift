@@ -1,8 +1,10 @@
 import Foundation
 import Combine
 import IOKit.ps
+import notify
+import AppKit
 
-/// Real-time macOS battery & power source monitor using IOKit IOPowerSources.
+/// Real-time macOS battery & power source monitor using IOKit IOPowerSources and Darwin notifications.
 @MainActor
 public final class BatteryMonitor: ObservableObject {
     @Published public private(set) var percentage: Int = 100
@@ -18,29 +20,70 @@ public final class BatteryMonitor: ObservableObject {
 
     private var runLoopSource: CFRunLoopSource?
     private var periodicTimer: AnyCancellable?
+    private var workspaceCancellables = Set<AnyCancellable>()
+    private var notifyTokens: [Int32] = []
+    private var isMonitoring: Bool = false
 
     public init() {
-        refresh()
+        start()
     }
 
     public func start() {
+        guard !isMonitoring else {
+            refresh()
+            return
+        }
+        isMonitoring = true
         refresh()
 
-        // 1. Register for real-time OS power source notifications via CFRunLoop
+        // 1. Register for real-time OS power source notifications via CFRunLoopSource
         let context = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
         if let source = IOPSNotificationCreateRunLoopSource({ context in
             guard let context else { return }
             let monitor = Unmanaged<BatteryMonitor>.fromOpaque(context).takeUnretainedValue()
-            Task { @MainActor in
+            if Thread.isMainThread {
                 monitor.refresh()
+            } else {
+                DispatchQueue.main.async {
+                    monitor.refresh()
+                }
             }
         }, context)?.takeRetainedValue() {
             CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
             self.runLoopSource = source
         }
 
-        // 2. Periodic fallback to update minute counters smoothly
-        periodicTimer = Timer.publish(every: 10, on: .main, in: .common)
+        // 2. Darwin notifications for instantaneous kernel-level power events
+        let kernelNotifications = [
+            "com.apple.system.powersources",
+            "com.apple.system.powersources.source",
+            "com.apple.system.powersources.timeremaining",
+            "com.apple.system.powersources.percent",
+            "com.apple.system.powersources.lowbattery",
+            "com.apple.system.powersources.attach"
+        ]
+
+        for name in kernelNotifications {
+            var token: Int32 = 0
+            let status = notify_register_dispatch(name, &token, DispatchQueue.main) { [weak self] _ in
+                self?.refresh()
+            }
+            if status == NOTIFY_STATUS_OK {
+                notifyTokens.append(token)
+            }
+        }
+
+        // 3. Workspace notifications on wake/sleep
+        NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didWakeNotification)
+            .sink { [weak self] _ in self?.refresh() }
+            .store(in: &workspaceCancellables)
+
+        NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.screensDidWakeNotification)
+            .sink { [weak self] _ in self?.refresh() }
+            .store(in: &workspaceCancellables)
+
+        // 4. Ultra-responsive 1-second timer fallback to guarantee real-time accuracy
+        periodicTimer = Timer.publish(every: 1.0, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in
                 self?.refresh()
@@ -48,10 +91,20 @@ public final class BatteryMonitor: ObservableObject {
     }
 
     public func stop() {
+        guard isMonitoring else { return }
+        isMonitoring = false
+
         if let runLoopSource {
             CFRunLoopRemoveSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
             self.runLoopSource = nil
         }
+
+        for token in notifyTokens {
+            notify_cancel(token)
+        }
+        notifyTokens.removeAll()
+
+        workspaceCancellables.removeAll()
         periodicTimer?.cancel()
         periodicTimer = nil
     }
@@ -128,6 +181,23 @@ public final class BatteryMonitor: ObservableObject {
         }
 
         self.hasInternalBattery = foundBattery
+    }
+
+    /// Header SF symbol matching current state and level.
+    public var headerIconName: String {
+        if isCharging {
+            return "battery.100percent.bolt"
+        } else if percentage >= 88 {
+            return "battery.100percent"
+        } else if percentage >= 63 {
+            return "battery.75percent"
+        } else if percentage >= 38 {
+            return "battery.50percent"
+        } else if percentage >= 13 {
+            return "battery.25percent"
+        } else {
+            return "battery.0percent"
+        }
     }
 
     /// User-friendly formatted time duration, or nil if no duration is calculating/available.

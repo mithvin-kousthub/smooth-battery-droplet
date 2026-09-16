@@ -10,7 +10,7 @@ public struct SmoothBatteryShape: View {
     public let width: CGFloat
     public let height: CGFloat
 
-    public init(percentage: Int, isCharging: Bool, isLowPower: Bool = false, width: CGFloat = 60, height: CGFloat = 28) {
+    public init(percentage: Int, isCharging: Bool, isLowPower: Bool = false, width: CGFloat = 60, height: CGFloat = 26) {
         self.percentage = max(0, min(100, percentage))
         self.isCharging = isCharging
         self.isLowPower = isLowPower
@@ -44,7 +44,7 @@ public struct SmoothBatteryShape: View {
         HStack(spacing: 2) {
             // Main battery capsule
             ZStack(alignment: .leading) {
-                // Outer shell stroke
+                // Outer shell stroke and background
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .strokeBorder(AdaptiveColors.notchSurfacePrimaryText.opacity(0.35), lineWidth: 1.6)
                     .background(
@@ -90,17 +90,19 @@ public struct SmoothBatteryShape: View {
 
 public struct BatteryWidgetView: View {
     @ObservedObject var droplet: BatteryDroplet
+    @ObservedObject var monitor: BatteryMonitor
     let context: ShelfWidgetContext
 
     public init(droplet: BatteryDroplet, context: ShelfWidgetContext) {
         self.droplet = droplet
+        self.monitor = droplet.monitor
         self.context = context
     }
 
     private var statusDotColor: Color {
-        if droplet.monitor.isCharging || droplet.monitor.isCharged || (droplet.monitor.isACConnected && droplet.monitor.percentage == 100) {
+        if monitor.isCharging || monitor.isCharged || (monitor.isACConnected && monitor.percentage == 100) {
             return Color(red: 0.20, green: 0.84, blue: 0.45) // Green
-        } else if droplet.monitor.lowPowerModeActive || droplet.monitor.percentage <= 20 {
+        } else if monitor.lowPowerModeActive || monitor.percentage <= 20 {
             return Color(red: 1.00, green: 0.80, blue: 0.00) // Amber
         } else {
             return AdaptiveColors.notchSurfaceSecondaryText // Muted silver
@@ -109,9 +111,9 @@ public struct BatteryWidgetView: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: DroppySpacing.sm) {
-            // Standard Droppy Header Row (clean, no awkward corner controls)
+            // Standard Droppy Header Row with dynamic SF Symbol
             HStack(spacing: DroppySpacing.xsm) {
-                Image(systemName: droplet.monitor.isCharging ? "battery.100percent.bolt" : "battery.75percent")
+                Image(systemName: monitor.headerIconName)
                     .font(.system(size: 12, weight: .medium))
                 Text("Battery")
                     .font(.system(size: 12, weight: .semibold))
@@ -127,8 +129,21 @@ public struct BatteryWidgetView: View {
 
             Spacer(minLength: 0)
         }
-        .padding(context.contentInsets)
+        // Inset by at least DroppySpacing.mdl (14pt) leading/trailing and smd (10pt) top
+        // to ensure content never collides with or is clipped by the slot's continuous corner radius curves.
+        .padding(.leading, max(context.contentInsets.leading, DroppySpacing.mdl))
+        .padding(.trailing, max(context.contentInsets.trailing, DroppySpacing.mdl))
+        .padding(.top, max(context.contentInsets.top, DroppySpacing.smd))
+        .padding(.bottom, max(context.contentInsets.bottom, DroppySpacing.sm))
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .onAppear {
+            monitor.refresh()
+        }
+        .onChange(of: context.isShelfTransitioning) { _, transitioning in
+            if !transitioning {
+                monitor.refresh()
+            }
+        }
     }
 
     // MARK: - Paired Composition (Slot width ~210)
@@ -137,15 +152,15 @@ public struct BatteryWidgetView: View {
             // Battery gauge and percentage unified on the leading side
             HStack(alignment: .center, spacing: DroppySpacing.md) {
                 SmoothBatteryShape(
-                    percentage: droplet.monitor.percentage,
-                    isCharging: droplet.monitor.isCharging,
-                    isLowPower: droplet.monitor.lowPowerModeActive,
-                    width: 48,
+                    percentage: monitor.percentage,
+                    isCharging: monitor.isCharging,
+                    isLowPower: monitor.lowPowerModeActive,
+                    width: 46,
                     height: 22
                 )
 
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
-                    Text("\(droplet.monitor.percentage)")
+                    Text("\(monitor.percentage)")
                         .font(.system(size: 26, weight: .bold, design: .rounded))
                         .monospacedDigit()
                         .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
@@ -157,11 +172,11 @@ public struct BatteryWidgetView: View {
             }
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(droplet.monitor.stateSubtitle)
+                Text(monitor.stateSubtitle)
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(droplet.monitor.isCharging ? Color(red: 0.20, green: 0.84, blue: 0.45) : AdaptiveColors.notchSurfacePrimaryText)
+                    .foregroundStyle(monitor.isCharging ? Color(red: 0.20, green: 0.84, blue: 0.45) : AdaptiveColors.notchSurfacePrimaryText)
 
-                if droplet.showsTimeRemaining, let duration = droplet.monitor.formattedDuration {
+                if droplet.showsTimeRemaining, let duration = monitor.formattedDuration {
                     Text(duration)
                         .font(.system(size: 11))
                         .foregroundStyle(AdaptiveColors.notchSurfaceTertiaryText)
@@ -179,15 +194,15 @@ public struct BatteryWidgetView: View {
             VStack(alignment: .leading, spacing: DroppySpacing.sm) {
                 HStack(alignment: .center, spacing: DroppySpacing.md) {
                     SmoothBatteryShape(
-                        percentage: droplet.monitor.percentage,
-                        isCharging: droplet.monitor.isCharging,
-                        isLowPower: droplet.monitor.lowPowerModeActive,
-                        width: 62,
-                        height: 28
+                        percentage: monitor.percentage,
+                        isCharging: monitor.isCharging,
+                        isLowPower: monitor.lowPowerModeActive,
+                        width: 60,
+                        height: 26
                     )
 
                     HStack(alignment: .firstTextBaseline, spacing: 2) {
-                        Text("\(droplet.monitor.percentage)")
+                        Text("\(monitor.percentage)")
                             .font(.system(size: 32, weight: .bold, design: .rounded))
                             .monospacedDigit()
                             .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
@@ -203,11 +218,11 @@ public struct BatteryWidgetView: View {
                         .fill(statusDotColor)
                         .frame(width: 7, height: 7)
 
-                    Text(droplet.monitor.stateSubtitle)
+                    Text(monitor.stateSubtitle)
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
 
-                    if droplet.showsTimeRemaining, let duration = droplet.monitor.formattedDuration {
+                    if droplet.showsTimeRemaining, let duration = monitor.formattedDuration {
                         Text("•")
                             .foregroundStyle(AdaptiveColors.notchSurfaceTertiaryText)
                         Text(duration)
@@ -220,14 +235,13 @@ public struct BatteryWidgetView: View {
 
             // Right Column: Power details & specs
             VStack(alignment: .leading, spacing: DroppySpacing.xs) {
-                detailRow(label: "Power source", value: droplet.monitor.powerSourceState)
-                if droplet.monitor.lowPowerModeActive {
+                detailRow(label: "Power source", value: monitor.powerSourceState)
+                if monitor.lowPowerModeActive {
                     detailRow(label: "Low power mode", value: "On")
                 }
-                detailRow(label: "Condition", value: droplet.monitor.batteryHealth)
+                detailRow(label: "Condition", value: monitor.batteryHealth)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.trailing, DroppySpacing.xs)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

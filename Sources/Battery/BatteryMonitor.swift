@@ -130,7 +130,7 @@ public final class BatteryMonitor: ObservableObject {
         self.hasInternalBattery = foundBattery
     }
 
-    /// User-friendly formatted time remaining / charge status.
+    /// User-friendly formatted time duration, or nil if no duration is calculating/available.
     public var formattedDuration: String? {
         if isCharging {
             if let toFull = timeToFullChargeMinutes {
@@ -138,9 +138,9 @@ public final class BatteryMonitor: ObservableObject {
                 let m = toFull % 60
                 return h > 0 ? "\(h)h \(m)m until full" : "\(m)m until full"
             }
-            return isCharged ? "Fully charged" : "Charging"
+            return nil
         } else if isACConnected {
-            return isCharged ? "Fully charged" : "Power connected"
+            return nil
         } else if let toEmpty = timeRemainingMinutes {
             let h = toEmpty / 60
             let m = toEmpty % 60
@@ -153,10 +153,10 @@ public final class BatteryMonitor: ObservableObject {
     public var stateSubtitle: String {
         if isCharging {
             return "Charging"
-        } else if isCharged && isACConnected {
-            return "Charged"
+        } else if isCharged || (isACConnected && percentage == 100) {
+            return "Fully Charged"
         } else if isACConnected {
-            return "Power Connected"
+            return "Not Charging"
         } else {
             return "On Battery"
         }

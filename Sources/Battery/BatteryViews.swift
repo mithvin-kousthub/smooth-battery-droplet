@@ -10,7 +10,7 @@ public struct SmoothBatteryShape: View {
     public let width: CGFloat
     public let height: CGFloat
 
-    public init(percentage: Int, isCharging: Bool, isLowPower: Bool = false, width: CGFloat = 56, height: CGFloat = 24) {
+    public init(percentage: Int, isCharging: Bool, isLowPower: Bool = false, width: CGFloat = 72, height: CGFloat = 32) {
         self.percentage = max(0, min(100, percentage))
         self.isCharging = isCharging
         self.isLowPower = isLowPower
@@ -33,7 +33,7 @@ public struct SmoothBatteryShape: View {
     }
 
     public var body: some View {
-        let cornerRadius = height * 0.30
+        let cornerRadius = height * 0.28
         let capWidth = max(2.5, width * 0.05)
         let capHeight = height * 0.38
         let innerPadding: CGFloat = 2.5
@@ -41,15 +41,15 @@ public struct SmoothBatteryShape: View {
         let innerRadius = max(2, cornerRadius - innerPadding)
         let currentFillWidth = innerWidth * (CGFloat(percentage) / 100.0)
 
-        HStack(spacing: 2) {
+        HStack(spacing: 2.5) {
             // Main battery capsule
             ZStack(alignment: .leading) {
                 // Outer shell stroke and background
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .strokeBorder(AdaptiveColors.notchSurfacePrimaryText.opacity(0.35), lineWidth: 1.6)
+                    .strokeBorder(AdaptiveColors.notchSurfacePrimaryText.opacity(0.35), lineWidth: 1.8)
                     .background(
                         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                            .fill(Color.black.opacity(0.25))
+                            .fill(Color.black.opacity(0.3))
                     )
 
                 // Inner track + liquid fill
@@ -58,9 +58,9 @@ public struct SmoothBatteryShape: View {
                         .fill(Color.white.opacity(0.06))
 
                     if percentage > 0 {
-                        RoundedRectangle(cornerRadius: 2, style: .continuous)
+                        RoundedRectangle(cornerRadius: max(1.5, innerRadius - 1), style: .continuous)
                             .fill(fillColor)
-                            .frame(width: max(3, currentFillWidth))
+                            .frame(width: max(4, currentFillWidth))
                             .animation(DroppyAnimation.state, value: percentage)
                             .animation(DroppyAnimation.state, value: isCharging)
                     }
@@ -71,8 +71,8 @@ public struct SmoothBatteryShape: View {
                 // Centered charging bolt
                 if isCharging {
                     Image(systemName: "bolt.fill")
-                        .font(.system(size: height * 0.44, weight: .bold))
-                        .foregroundStyle(percentage > 55 ? Color.black.opacity(0.7) : AdaptiveColors.notchSurfacePrimaryText)
+                        .font(.system(size: height * 0.48, weight: .bold))
+                        .foregroundStyle(percentage > 55 ? Color.black.opacity(0.75) : AdaptiveColors.notchSurfacePrimaryText)
                         .frame(maxWidth: .infinity, alignment: .center)
                 }
             }
@@ -111,29 +111,31 @@ public struct BatteryWidgetView: View {
 
     public var body: some View {
         ZStack {
-            // Distinct outer container with continuous radius so the widget is self-contained
+            // Distinct outer container with continuous radius covering the slot end-to-end
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(Color.white.opacity(0.06))
                 .overlay(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.09), lineWidth: 1)
+                        .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
                 )
 
-            // Content positioned safely inside along X and Y axes away from corners
-            VStack(alignment: .leading, spacing: 0) {
+            // Content structured end-to-end and center-aligned
+            VStack(spacing: 0) {
                 // Header row
                 HStack(spacing: DroppySpacing.xsm) {
                     Image(systemName: monitor.headerIconName)
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.system(size: 11, weight: .medium))
                     Text("Battery")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.system(size: 11, weight: .semibold))
                     Spacer(minLength: 0)
                 }
                 .foregroundStyle(AdaptiveColors.notchSurfaceSecondaryText)
+                .padding(.horizontal, 14)
+                .padding(.top, 10)
 
-                Spacer(minLength: DroppySpacing.xs)
+                Spacer(minLength: 0)
 
-                // Body branching on context.isCompact
+                // Main composition
                 if context.isCompact {
                     pairedComposition
                 } else {
@@ -142,14 +144,9 @@ public struct BatteryWidgetView: View {
 
                 Spacer(minLength: 0)
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // Offset on X and Y axes away from host slot corners (shelf and app)
-        .padding(.horizontal, 4)
-        .padding(.vertical, 3)
         .onAppear {
             monitor.refresh()
         }
@@ -160,84 +157,83 @@ public struct BatteryWidgetView: View {
         }
     }
 
-    // MARK: - Paired Composition (Slot width ~210)
+    // MARK: - Paired Composition (Slot width ~210, height ~106)
     private var pairedComposition: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Battery gauge and percentage unified on the leading side
+        VStack(alignment: .center, spacing: 6) {
+            // Large, prominent, center-aligned battery gauge + percentage
             HStack(alignment: .center, spacing: DroppySpacing.md) {
                 SmoothBatteryShape(
                     percentage: monitor.percentage,
                     isCharging: monitor.isCharging,
                     isLowPower: monitor.lowPowerModeActive,
-                    width: 48,
-                    height: 22
+                    width: 72,
+                    height: 32
                 )
 
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
                     Text("\(monitor.percentage)")
-                        .font(.system(size: 26, weight: .bold, design: .rounded))
+                        .font(.system(size: 30, weight: .bold, design: .rounded))
                         .monospacedDigit()
                         .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
 
                     Text("%")
-                        .font(.system(size: 13, weight: .medium, design: .rounded))
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
                         .foregroundStyle(AdaptiveColors.notchSurfaceSecondaryText)
                 }
-
-                Spacer(minLength: 0)
             }
 
-            Spacer(minLength: DroppySpacing.xs)
+            // Center-aligned status & duration directly below the battery
+            HStack(spacing: 5) {
+                Circle()
+                    .fill(statusDotColor)
+                    .frame(width: 6, height: 6)
 
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: DroppySpacing.xsm) {
-                    Circle()
-                        .fill(statusDotColor)
-                        .frame(width: 6, height: 6)
-
-                    Text(monitor.stateSubtitle)
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(monitor.isCharging ? Color(red: 0.20, green: 0.84, blue: 0.45) : AdaptiveColors.notchSurfacePrimaryText)
-                }
+                Text(monitor.stateSubtitle)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(monitor.isCharging ? Color(red: 0.20, green: 0.84, blue: 0.45) : AdaptiveColors.notchSurfacePrimaryText)
 
                 if droplet.showsTimeRemaining, let duration = monitor.formattedDuration {
-                    Text(duration)
-                        .font(.system(size: 10))
+                    Text("•")
                         .foregroundStyle(AdaptiveColors.notchSurfaceTertiaryText)
-                        .lineLimit(1)
+                    Text(duration)
+                        .font(.system(size: 11))
+                        .foregroundStyle(AdaptiveColors.notchSurfaceSecondaryText)
                 }
             }
+            .lineLimit(1)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .center)
+        .padding(.horizontal, 10)
+        .padding(.bottom, 6)
     }
 
-    // MARK: - Solo Composition (Full width ~420)
+    // MARK: - Solo Composition (Full width ~420, height ~106)
     private var soloComposition: some View {
         HStack(alignment: .center, spacing: DroppySpacing.xl) {
-            // Left Column: Battery gauge + percentage + state
-            VStack(alignment: .leading, spacing: DroppySpacing.sm) {
+            // Left Column: Big centered battery gauge + percentage + state
+            VStack(alignment: .center, spacing: 6) {
                 HStack(alignment: .center, spacing: DroppySpacing.md) {
                     SmoothBatteryShape(
                         percentage: monitor.percentage,
                         isCharging: monitor.isCharging,
                         isLowPower: monitor.lowPowerModeActive,
-                        width: 58,
-                        height: 26
+                        width: 82,
+                        height: 36
                     )
 
                     HStack(alignment: .firstTextBaseline, spacing: 2) {
                         Text("\(monitor.percentage)")
-                            .font(.system(size: 32, weight: .bold, design: .rounded))
+                            .font(.system(size: 34, weight: .bold, design: .rounded))
                             .monospacedDigit()
                             .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
 
                         Text("%")
-                            .font(.system(size: 16, weight: .medium, design: .rounded))
+                            .font(.system(size: 16, weight: .semibold, design: .rounded))
                             .foregroundStyle(AdaptiveColors.notchSurfaceSecondaryText)
                     }
                 }
 
-                HStack(spacing: DroppySpacing.xs) {
+                HStack(spacing: 5) {
                     Circle()
                         .fill(statusDotColor)
                         .frame(width: 6, height: 6)
@@ -254,8 +250,9 @@ public struct BatteryWidgetView: View {
                             .foregroundStyle(AdaptiveColors.notchSurfaceSecondaryText)
                     }
                 }
+                .lineLimit(1)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .center)
 
             // Right Column: Power details & specs
             VStack(alignment: .leading, spacing: DroppySpacing.xs) {
@@ -266,8 +263,11 @@ public struct BatteryWidgetView: View {
                 detailRow(label: "Condition", value: monitor.batteryHealth)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.trailing, 10)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        .padding(.horizontal, 14)
+        .padding(.bottom, 6)
     }
 
     private func detailRow(label: String, value: String) -> some View {

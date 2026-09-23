@@ -17,14 +17,6 @@ public struct BatterySettingsView: View {
                     subtitle: "Estimates time remaining on battery or until full charge.",
                     isOn: droplet.showsTimeRemainingBinding
                 )
-
-                DropletSettingsDivider()
-
-                DropletToggleRow(
-                    title: "Live activity in notch",
-                    subtitle: "Shows compact battery indicator beside the notch or island.",
-                    isOn: droplet.showsLiveActivityBinding
-                )
             }
 
             // Battery Status Card

@@ -148,16 +148,22 @@ public final class BatteryMonitor: ObservableObject {
                 self.isACConnected = (psState == kIOPSACPowerValue)
                 self.powerSourceState = self.isACConnected ? "Power Adapter" : "Battery Power"
 
-                // Time remaining on battery: positive integer in minutes, or negative if calculating
-                if let toEmpty = desc[kIOPSTimeToEmptyKey] as? Int, toEmpty > 0 {
+                // Time remaining on battery & time to full charge with AppleSmartBattery fallback
+                let smartBattery = self.readAppleSmartBatteryDetails()
+
+                if let toEmpty = desc[kIOPSTimeToEmptyKey] as? Int, toEmpty > 0 && toEmpty < 65535 {
                     self.timeRemainingMinutes = toEmpty
+                } else if let avgEmpty = smartBattery.avgTimeToEmpty {
+                    self.timeRemainingMinutes = avgEmpty
                 } else {
                     self.timeRemainingMinutes = nil
                 }
 
                 // Time to full charge: positive integer in minutes
-                if let toFull = desc[kIOPSTimeToFullChargeKey] as? Int, toFull > 0 {
+                if let toFull = desc[kIOPSTimeToFullChargeKey] as? Int, toFull > 0 && toFull < 65535 {
                     self.timeToFullChargeMinutes = toFull
+                } else if let avgFull = smartBattery.avgTimeToFull {
+                    self.timeToFullChargeMinutes = avgFull
                 } else {
                     self.timeToFullChargeMinutes = nil
                 }
@@ -183,6 +189,33 @@ public final class BatteryMonitor: ObservableObject {
         self.hasInternalBattery = foundBattery
     }
 
+    /// Reads IORegistry AppleSmartBattery properties for accurate average runtime and charge estimates
+    private func readAppleSmartBatteryDetails() -> (avgTimeToEmpty: Int?, avgTimeToFull: Int?) {
+        let service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("AppleSmartBattery"))
+        guard service != 0 else { return (nil, nil) }
+        defer { IOObjectRelease(service) }
+
+        var props: Unmanaged<CFMutableDictionary>?
+        guard IORegistryEntryCreateCFProperties(service, &props, kCFAllocatorDefault, 0) == KERN_SUCCESS,
+              let dict = props?.takeRetainedValue() as? [String: Any] else {
+            return (nil, nil)
+        }
+
+        var emptyMin: Int? = nil
+        if let val = dict["AvgTimeToEmpty"] as? Int, val > 0 && val < 65535 {
+            emptyMin = val
+        } else if let val = dict["TimeRemaining"] as? Int, val > 0 && val < 65535 {
+            emptyMin = val
+        }
+
+        var fullMin: Int? = nil
+        if let val = dict["AvgTimeToFull"] as? Int, val > 0 && val < 65535 {
+            fullMin = val
+        }
+
+        return (emptyMin, fullMin)
+    }
+
     /// Header SF symbol matching current state and level.
     public var headerIconName: String {
         if isCharging {
@@ -200,23 +233,37 @@ public final class BatteryMonitor: ObservableObject {
         }
     }
 
-    /// User-friendly formatted time duration, or nil if no duration is calculating/available.
+    /// User-friendly formatted time duration, ensuring "Show time remaining" always delivers accurate estimates.
     public var formattedDuration: String? {
         if isCharging {
-            if let toFull = timeToFullChargeMinutes {
+            if let toFull = timeToFullChargeMinutes, toFull > 0 {
                 let h = toFull / 60
                 let m = toFull % 60
                 return h > 0 ? "\(h)h \(m)m until full" : "\(m)m until full"
             }
-            return nil
+            return "Calculating..."
         } else if isACConnected {
-            return nil
-        } else if let toEmpty = timeRemainingMinutes {
+            if isCharged || percentage == 100 {
+                if let toEmpty = timeRemainingMinutes, toEmpty > 0 {
+                    let h = toEmpty / 60
+                    let m = toEmpty % 60
+                    return h > 0 ? "~\(h)h \(m)m runtime" : "~\(m)m runtime"
+                }
+                return "Full charge"
+            } else {
+                if let toEmpty = timeRemainingMinutes, toEmpty > 0 {
+                    let h = toEmpty / 60
+                    let m = toEmpty % 60
+                    return h > 0 ? "~\(h)h \(m)m on battery" : "~\(m)m on battery"
+                }
+                return "AC Power"
+            }
+        } else if let toEmpty = timeRemainingMinutes, toEmpty > 0 {
             let h = toEmpty / 60
             let m = toEmpty % 60
             return h > 0 ? "\(h)h \(m)m remaining" : "\(m)m remaining"
         }
-        return nil
+        return "Calculating..."
     }
 
     /// Primary state subtitle.

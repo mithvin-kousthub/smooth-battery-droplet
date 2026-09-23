@@ -3,7 +3,7 @@
   "name": "Battery",
   "version": "1.0.0",
   "summary": "Smooth battery indicator and percentage for Droppy",
-  "description": "A sleek, smooth battery indicator with live percentage, charging status, and power metrics.\n\nDesigned natively for Droppy's shelf and the Dynamic Island, with real-time macOS power tracking, smooth liquid fill animations, and zero-jitter monospaced percentage readouts.",
+  "description": "A sleek, smooth battery indicator with live percentage, charging status, and power metrics.\n\nDesigned natively for Droppy's shelf, with real-time macOS power tracking, smooth liquid fill animations, and zero-jitter monospaced percentage readouts.",
   "category": "Productivity",
   "kit": {
     "abi": 1,
@@ -15,7 +15,6 @@
   ],
   "surfaces": [
     "shelf-widget",
-    "live-activity",
     "settings-pane"
   ],
   "icon": "Battery.icon",

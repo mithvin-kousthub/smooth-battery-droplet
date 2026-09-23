@@ -10,7 +10,7 @@ public struct SmoothBatteryShape: View {
     public let width: CGFloat
     public let height: CGFloat
 
-    public init(percentage: Int, isCharging: Bool, isLowPower: Bool = false, width: CGFloat = 60, height: CGFloat = 26) {
+    public init(percentage: Int, isCharging: Bool, isLowPower: Bool = false, width: CGFloat = 56, height: CGFloat = 24) {
         self.percentage = max(0, min(100, percentage))
         self.isCharging = isCharging
         self.isLowPower = isLowPower
@@ -110,31 +110,41 @@ public struct BatteryWidgetView: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: DroppySpacing.sm) {
-            // Standard Droppy Header Row with dynamic SF Symbol
-            HStack(spacing: DroppySpacing.xsm) {
-                Image(systemName: monitor.headerIconName)
-                    .font(.system(size: 12, weight: .medium))
-                Text("Battery")
-                    .font(.system(size: 12, weight: .semibold))
-            }
-            .foregroundStyle(AdaptiveColors.notchSurfaceSecondaryText)
+        ZStack {
+            // Distinct outer container with continuous radius so the widget is self-contained
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.white.opacity(0.06))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.09), lineWidth: 1)
+                )
 
-            // Body branching on context.isCompact
-            if context.isCompact {
-                pairedComposition
-            } else {
-                soloComposition
-            }
+            // Content positioned safely inside along X and Y axes away from corners
+            VStack(alignment: .leading, spacing: DroppySpacing.sm) {
+                // Header row
+                HStack(spacing: DroppySpacing.xsm) {
+                    Image(systemName: monitor.headerIconName)
+                        .font(.system(size: 12, weight: .medium))
+                    Text("Battery")
+                        .font(.system(size: 12, weight: .semibold))
+                }
+                .foregroundStyle(AdaptiveColors.notchSurfaceSecondaryText)
 
-            Spacer(minLength: 0)
+                // Body branching on context.isCompact
+                if context.isCompact {
+                    pairedComposition
+                } else {
+                    soloComposition
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
         }
-        // Inset by at least DroppySpacing.mdl (14pt) leading/trailing and smd (10pt) top
-        // to ensure content never collides with or is clipped by the slot's continuous corner radius curves.
-        .padding(.leading, max(context.contentInsets.leading, DroppySpacing.mdl))
-        .padding(.trailing, max(context.contentInsets.trailing, DroppySpacing.mdl))
-        .padding(.top, max(context.contentInsets.top, DroppySpacing.smd))
-        .padding(.bottom, max(context.contentInsets.bottom, DroppySpacing.sm))
+        // Offset on X and Y axes away from host slot corners (shelf and app)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .onAppear {
             monitor.refresh()
@@ -155,30 +165,30 @@ public struct BatteryWidgetView: View {
                     percentage: monitor.percentage,
                     isCharging: monitor.isCharging,
                     isLowPower: monitor.lowPowerModeActive,
-                    width: 46,
-                    height: 22
+                    width: 44,
+                    height: 20
                 )
 
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
                     Text("\(monitor.percentage)")
-                        .font(.system(size: 26, weight: .bold, design: .rounded))
+                        .font(.system(size: 24, weight: .bold, design: .rounded))
                         .monospacedDigit()
                         .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
 
                     Text("%")
-                        .font(.system(size: 14, weight: .medium, design: .rounded))
+                        .font(.system(size: 13, weight: .medium, design: .rounded))
                         .foregroundStyle(AdaptiveColors.notchSurfaceSecondaryText)
                 }
             }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(monitor.stateSubtitle)
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(monitor.isCharging ? Color(red: 0.20, green: 0.84, blue: 0.45) : AdaptiveColors.notchSurfacePrimaryText)
 
                 if droplet.showsTimeRemaining, let duration = monitor.formattedDuration {
                     Text(duration)
-                        .font(.system(size: 11))
+                        .font(.system(size: 10))
                         .foregroundStyle(AdaptiveColors.notchSurfaceTertiaryText)
                         .lineLimit(1)
                 }
@@ -189,7 +199,7 @@ public struct BatteryWidgetView: View {
 
     // MARK: - Solo Composition (Full width ~420)
     private var soloComposition: some View {
-        HStack(alignment: .top, spacing: DroppySpacing.xl) {
+        HStack(alignment: .top, spacing: DroppySpacing.lg) {
             // Left Column: Battery gauge + percentage + state
             VStack(alignment: .leading, spacing: DroppySpacing.sm) {
                 HStack(alignment: .center, spacing: DroppySpacing.md) {
@@ -197,18 +207,18 @@ public struct BatteryWidgetView: View {
                         percentage: monitor.percentage,
                         isCharging: monitor.isCharging,
                         isLowPower: monitor.lowPowerModeActive,
-                        width: 60,
-                        height: 26
+                        width: 56,
+                        height: 24
                     )
 
                     HStack(alignment: .firstTextBaseline, spacing: 2) {
                         Text("\(monitor.percentage)")
-                            .font(.system(size: 32, weight: .bold, design: .rounded))
+                            .font(.system(size: 30, weight: .bold, design: .rounded))
                             .monospacedDigit()
                             .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
 
                         Text("%")
-                            .font(.system(size: 16, weight: .medium, design: .rounded))
+                            .font(.system(size: 15, weight: .medium, design: .rounded))
                             .foregroundStyle(AdaptiveColors.notchSurfaceSecondaryText)
                     }
                 }
@@ -216,17 +226,17 @@ public struct BatteryWidgetView: View {
                 HStack(spacing: DroppySpacing.xs) {
                     Circle()
                         .fill(statusDotColor)
-                        .frame(width: 7, height: 7)
+                        .frame(width: 6, height: 6)
 
                     Text(monitor.stateSubtitle)
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
 
                     if droplet.showsTimeRemaining, let duration = monitor.formattedDuration {
                         Text("•")
                             .foregroundStyle(AdaptiveColors.notchSurfaceTertiaryText)
                         Text(duration)
-                            .font(.system(size: 12))
+                            .font(.system(size: 11))
                             .foregroundStyle(AdaptiveColors.notchSurfaceSecondaryText)
                     }
                 }
@@ -249,11 +259,11 @@ public struct BatteryWidgetView: View {
     private func detailRow(label: String, value: String) -> some View {
         HStack {
             Text(label)
-                .font(.system(size: 12))
+                .font(.system(size: 11))
                 .foregroundStyle(AdaptiveColors.notchSurfaceSecondaryText)
-            Spacer(minLength: DroppySpacing.md)
+            Spacer(minLength: DroppySpacing.sm)
             Text(value)
-                .font(.system(size: 12, weight: .medium))
+                .font(.system(size: 11, weight: .medium))
                 .monospacedDigit()
                 .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
         }

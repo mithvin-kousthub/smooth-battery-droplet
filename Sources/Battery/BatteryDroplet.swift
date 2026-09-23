@@ -110,7 +110,7 @@ extension BatteryDroplet: ShelfWidgetProviding {
                 layoutTraits: ShelfWidgetLayoutTraits(
                     preferredSoloWidth: 420,
                     preferredPairedWidth: 210,
-                    contentHeight: .standard
+                    contentHeight: .fixed(106)
                 ),
                 searchKeywords: ["battery", "power", "charge", "percentage"]
             )

@@ -1,7 +1,5 @@
 # Changelog
 
-All notable changes to Smooth Battery will be documented in this file.
-
 ## [1.0.0] - 2026-09-23
 
 - Initial release of Smooth Battery for Droppy.

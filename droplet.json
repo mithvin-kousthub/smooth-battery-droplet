@@ -22,10 +22,11 @@
     "name": "Mithvin Kousthub C M",
     "kind": "community",
     "url": "https://github.com/mithvin-kousthub",
-    "avatar": "Creator.png"
+    "avatar": "Creator.png",
+    "gitlab": "mithvin-kousthub"
   },
   "source": {
-    "repository": "https://github.com/mithvin-kousthub/smooth-battery-droplet",
+    "repository": "https://gitlab.com/droppyformac1/droplets/-/tree/main/droplets/smooth-battery",
     "license": "MIT"
   },
   "keywords": [

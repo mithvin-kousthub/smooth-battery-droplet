@@ -59,9 +59,16 @@ public final class BatteryDroplet: NSObject, ObservableObject, Droplet {
         }
 
         let state = LiveActivityState(
-            priority: 150,
+            priority: 200,
             accessibilityTitle: "Battery \(monitor.percentage)%, \(monitor.stateSubtitle)",
-            isInteractive: false
+            isInteractive: false,
+            joinsPersistentActivitySet: true,
+            compactPresentation: CompactLiveActivityPresentationMetadata(
+                id: "smooth-battery-compact",
+                accessibilityLabel: "Battery",
+                accessibilityValue: "\(monitor.percentage)%"
+            ),
+            expandedWidgetID: "smooth-battery"
         )
         activitySubject.send(state)
     }
@@ -133,6 +140,15 @@ extension BatteryDroplet: LiveActivityProviding {
         activitySubject.eraseToAnyPublisher()
     }
 
+    public func liveActivitySeatDidChange(_ seat: DropletLiveActivitySeat) {
+        host?.log.info("Battery live activity seat changed: \(String(describing: seat))")
+        // When seat transitions (e.g. outranked by another droplet, or surface suppressed),
+        // re-publishing ensures Droppy restores the live activity immediately when other droplets yield.
+        if showsLiveActivity {
+            publishActivity()
+        }
+    }
+
     public func makeCompactLeading() -> AnyView {
         AnyView(
             BatteryCompactLeadingView(
@@ -148,6 +164,28 @@ extension BatteryDroplet: LiveActivityProviding {
             BatteryCompactTrailingView(
                 percentage: monitor.percentage,
                 isCharging: monitor.isCharging
+            )
+        )
+    }
+
+    public func makeCompanionCompact(context: CompactLiveActivityContext) -> AnyView {
+        AnyView(
+            BatteryCompanionPillView(
+                percentage: monitor.percentage,
+                isCharging: monitor.isCharging,
+                isLowPower: monitor.lowPowerModeActive,
+                slotSize: context.slotSize
+            )
+        )
+    }
+
+    public func makeCompanionDetail(context: LiveActivityContext) -> AnyView? {
+        AnyView(
+            BatteryCompanionDetailView(
+                percentage: monitor.percentage,
+                isCharging: monitor.isCharging,
+                isLowPower: monitor.lowPowerModeActive,
+                stateSubtitle: monitor.stateSubtitle
             )
         )
     }

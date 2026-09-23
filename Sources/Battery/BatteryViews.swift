@@ -182,25 +182,25 @@ public struct BatteryWidgetView: View {
                 }
             }
 
-            // Center-aligned status & duration directly below the battery
-            HStack(spacing: 5) {
-                Circle()
-                    .fill(statusDotColor)
-                    .frame(width: 6, height: 6)
+            // Center-aligned battery status & time remaining below it
+            VStack(alignment: .center, spacing: 2) {
+                HStack(spacing: 5) {
+                    Circle()
+                        .fill(statusDotColor)
+                        .frame(width: 6, height: 6)
 
-                Text(monitor.stateSubtitle)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(monitor.isCharging ? Color(red: 0.20, green: 0.84, blue: 0.45) : AdaptiveColors.notchSurfacePrimaryText)
+                    Text(monitor.stateSubtitle)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(monitor.isCharging ? Color(red: 0.20, green: 0.84, blue: 0.45) : AdaptiveColors.notchSurfacePrimaryText)
+                }
 
                 if droplet.showsTimeRemaining, let duration = monitor.formattedDuration {
-                    Text("•")
-                        .foregroundStyle(AdaptiveColors.notchSurfaceTertiaryText)
                     Text(duration)
-                        .font(.system(size: 11))
+                        .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(AdaptiveColors.notchSurfaceSecondaryText)
+                        .lineLimit(1)
                 }
             }
-            .lineLimit(1)
         }
         .frame(maxWidth: .infinity, alignment: .center)
         .padding(.horizontal, 10)
@@ -233,24 +233,24 @@ public struct BatteryWidgetView: View {
                     }
                 }
 
-                HStack(spacing: 5) {
-                    Circle()
-                        .fill(statusDotColor)
-                        .frame(width: 6, height: 6)
+                VStack(alignment: .center, spacing: 2) {
+                    HStack(spacing: 5) {
+                        Circle()
+                            .fill(statusDotColor)
+                            .frame(width: 6, height: 6)
 
-                    Text(monitor.stateSubtitle)
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
+                        Text(monitor.stateSubtitle)
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
+                    }
 
                     if droplet.showsTimeRemaining, let duration = monitor.formattedDuration {
-                        Text("•")
-                            .foregroundStyle(AdaptiveColors.notchSurfaceTertiaryText)
                         Text(duration)
-                            .font(.system(size: 11))
+                            .font(.system(size: 11, weight: .medium))
                             .foregroundStyle(AdaptiveColors.notchSurfaceSecondaryText)
+                            .lineLimit(1)
                     }
                 }
-                .lineLimit(1)
             }
             .frame(maxWidth: .infinity, alignment: .center)
 

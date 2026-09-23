@@ -10,15 +10,6 @@ public struct BatterySettingsView: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: DroppySpacing.lg) {
-            // General Settings Card
-            DropletSettingsCard {
-                DropletToggleRow(
-                    title: "Show time remaining",
-                    subtitle: "Estimates time remaining on battery or until full charge.",
-                    isOn: droplet.showsTimeRemainingBinding
-                )
-            }
-
             // Battery Status Card
             DropletSettingsCard {
                 DropletControlRow(title: "Battery level") {
@@ -36,6 +27,15 @@ public struct BatterySettingsView: View {
                 DropletControlRow(title: "Battery condition") {
                     DropletValuePill(text: droplet.monitor.batteryHealth)
                 }
+            }
+
+            // Options Card: Show time remaining below Battery status
+            DropletSettingsCard {
+                DropletToggleRow(
+                    title: "Show time remaining",
+                    subtitle: "Estimates time remaining on battery or until full charge.",
+                    isOn: droplet.showsTimeRemainingBinding
+                )
             }
         }
     }

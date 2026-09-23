@@ -44,22 +44,6 @@ public final class BatteryDroplet: NSObject, ObservableObject, Droplet {
         monitor.stop()
         host = nil
     }
-
-    // MARK: - Preferences & Settings
-
-    public var showsTimeRemaining: Bool {
-        host?.preferences.value(forKey: "showsTimeRemaining", default: true) ?? true
-    }
-
-    public var showsTimeRemainingBinding: Binding<Bool> {
-        Binding(
-            get: { self.showsTimeRemaining },
-            set: { [weak self] val in
-                self?.host?.preferences.setValue(val, forKey: "showsTimeRemaining")
-                self?.objectWillChange.send()
-            }
-        )
-    }
 }
 
 // MARK: - Shelf Widget Providing
@@ -99,8 +83,8 @@ extension BatteryDroplet: SettingsPaneProviding {
 
     public var settingsSearchEntries: [SettingsSearchEntry] {
         [
-            SettingsSearchEntry(title: "Battery level", keywords: ["battery", "percentage", "charge"]),
-            SettingsSearchEntry(title: "Show time remaining", keywords: ["time", "battery", "remaining"])
+            SettingsSearchEntry(title: "Battery level", keywords: ["battery", "percentage", "charge", "power", "lpm"])
         ]
     }
 }
+

@@ -182,25 +182,17 @@ public struct BatteryWidgetView: View {
                 }
             }
 
-            // Center-aligned battery status & time remaining below it
-            VStack(alignment: .center, spacing: 2) {
-                HStack(spacing: 5) {
-                    Circle()
-                        .fill(statusDotColor)
-                        .frame(width: 6, height: 6)
+            // Center-aligned battery status directly below the battery
+            HStack(spacing: 5) {
+                Circle()
+                    .fill(statusDotColor)
+                    .frame(width: 6, height: 6)
 
-                    Text(monitor.stateSubtitle)
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(monitor.isCharging ? Color(red: 0.20, green: 0.84, blue: 0.45) : AdaptiveColors.notchSurfacePrimaryText)
-                }
-
-                if droplet.showsTimeRemaining, let duration = monitor.formattedDuration {
-                    Text(duration)
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(AdaptiveColors.notchSurfaceSecondaryText)
-                        .lineLimit(1)
-                }
+                Text(monitor.stateSubtitle)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(monitor.isCharging ? Color(red: 0.20, green: 0.84, blue: 0.45) : AdaptiveColors.notchSurfacePrimaryText)
             }
+            .lineLimit(1)
         }
         .frame(maxWidth: .infinity, alignment: .center)
         .padding(.horizontal, 10)
@@ -233,33 +225,23 @@ public struct BatteryWidgetView: View {
                     }
                 }
 
-                VStack(alignment: .center, spacing: 2) {
-                    HStack(spacing: 5) {
-                        Circle()
-                            .fill(statusDotColor)
-                            .frame(width: 6, height: 6)
+                HStack(spacing: 5) {
+                    Circle()
+                        .fill(statusDotColor)
+                        .frame(width: 6, height: 6)
 
-                        Text(monitor.stateSubtitle)
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
-                    }
-
-                    if droplet.showsTimeRemaining, let duration = monitor.formattedDuration {
-                        Text(duration)
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(AdaptiveColors.notchSurfaceSecondaryText)
-                            .lineLimit(1)
-                    }
+                    Text(monitor.stateSubtitle)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
                 }
+                .lineLimit(1)
             }
             .frame(maxWidth: .infinity, alignment: .center)
 
             // Right Column: Power details & specs
             VStack(alignment: .leading, spacing: DroppySpacing.xs) {
                 detailRow(label: "Power source", value: monitor.powerSourceState)
-                if monitor.lowPowerModeActive {
-                    detailRow(label: "Low power mode", value: "On")
-                }
+                detailRow(label: "Low power mode", value: monitor.lowPowerModeActive ? "On" : "Off")
                 detailRow(label: "Condition", value: monitor.batteryHealth)
             }
             .frame(maxWidth: .infinity, alignment: .leading)

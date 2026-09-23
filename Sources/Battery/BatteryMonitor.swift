@@ -22,6 +22,7 @@ public final class BatteryMonitor: ObservableObject {
     private var periodicTimer: AnyCancellable?
     private var workspaceCancellables = Set<AnyCancellable>()
     private var notifyTokens: [Int32] = []
+    private var lpmNotifyToken: Int32 = -1
     private var isMonitoring: Bool = false
 
     public init() {
@@ -53,8 +54,10 @@ public final class BatteryMonitor: ObservableObject {
             self.runLoopSource = source
         }
 
-        // 2. Darwin notifications for instantaneous kernel-level power events
+        // 2. Darwin notifications for instantaneous kernel-level power and Low Power Mode events
         let kernelNotifications = [
+            "com.apple.system.lowpowermode",
+            "com.apple.system.powersources.lowpowermode",
             "com.apple.system.powersources",
             "com.apple.system.powersources.source",
             "com.apple.system.powersources.timeremaining",
@@ -65,15 +68,30 @@ public final class BatteryMonitor: ObservableObject {
 
         for name in kernelNotifications {
             var token: Int32 = 0
-            let status = notify_register_dispatch(name, &token, DispatchQueue.main) { [weak self] _ in
+            let status = notify_register_dispatch(name, &token, DispatchQueue.main) { [weak self] t in
+                if name == "com.apple.system.lowpowermode" {
+                    self?.updateLowPowerMode()
+                }
                 self?.refresh()
             }
             if status == NOTIFY_STATUS_OK {
+                if name == "com.apple.system.lowpowermode" {
+                    self.lpmNotifyToken = token
+                }
                 notifyTokens.append(token)
             }
         }
 
-        // 3. Workspace notifications on wake/sleep
+        // 3. Foundation power state change notification (instantaneous Low Power Mode toggles)
+        NotificationCenter.default.publisher(for: NSNotification.Name.NSProcessInfoPowerStateDidChange)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.updateLowPowerMode()
+                self?.refresh()
+            }
+            .store(in: &workspaceCancellables)
+
+        // 4. Workspace notifications on wake/sleep
         NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didWakeNotification)
             .sink { [weak self] _ in self?.refresh() }
             .store(in: &workspaceCancellables)
@@ -82,10 +100,11 @@ public final class BatteryMonitor: ObservableObject {
             .sink { [weak self] _ in self?.refresh() }
             .store(in: &workspaceCancellables)
 
-        // 4. Ultra-responsive 1-second timer fallback to guarantee real-time accuracy
-        periodicTimer = Timer.publish(every: 1.0, on: .main, in: .common)
+        // 5. Ultra-responsive 0.5-second timer fallback to guarantee real-time accuracy
+        periodicTimer = Timer.publish(every: 0.5, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in
+                self?.updateLowPowerMode()
                 self?.refresh()
             }
     }
@@ -103,6 +122,7 @@ public final class BatteryMonitor: ObservableObject {
             notify_cancel(token)
         }
         notifyTokens.removeAll()
+        lpmNotifyToken = -1
 
         workspaceCancellables.removeAll()
         periodicTimer?.cancel()
@@ -168,13 +188,7 @@ public final class BatteryMonitor: ObservableObject {
                     self.timeToFullChargeMinutes = nil
                 }
 
-                if let lpm = desc["LPM Active"] as? Bool {
-                    self.lowPowerModeActive = lpm
-                } else if let lpmInt = desc["LPM Active"] as? Int {
-                    self.lowPowerModeActive = (lpmInt != 0)
-                } else {
-                    self.lowPowerModeActive = ProcessInfo.processInfo.isLowPowerModeEnabled
-                }
+                self.updateLowPowerMode()
 
                 if let health = desc[kIOPSBatteryHealthKey] as? String {
                     self.batteryHealth = health
@@ -187,6 +201,22 @@ public final class BatteryMonitor: ObservableObject {
         }
 
         self.hasInternalBattery = foundBattery
+    }
+
+    /// Instantaneous detection of Low Power Mode via Foundation ProcessInfo and Darwin state
+    public func updateLowPowerMode() {
+        let processInfoActive = ProcessInfo.processInfo.isLowPowerModeEnabled
+        var darwinActive = false
+        if lpmNotifyToken >= 0 {
+            var state: UInt64 = 0
+            if notify_get_state(lpmNotifyToken, &state) == NOTIFY_STATUS_OK {
+                darwinActive = (state != 0)
+            }
+        }
+        let active = processInfoActive || darwinActive
+        if self.lowPowerModeActive != active {
+            self.lowPowerModeActive = active
+        }
     }
 
     /// Reads IORegistry AppleSmartBattery properties for accurate average runtime and charge estimates

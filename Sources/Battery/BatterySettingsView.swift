@@ -24,19 +24,17 @@ public struct BatterySettingsView: View {
 
                 DropletSettingsDivider()
 
+                DropletControlRow(title: "Low power mode") {
+                    DropletValuePill(text: droplet.monitor.lowPowerModeActive ? "On" : "Off")
+                }
+
+                DropletSettingsDivider()
+
                 DropletControlRow(title: "Battery condition") {
                     DropletValuePill(text: droplet.monitor.batteryHealth)
                 }
             }
-
-            // Options Card: Show time remaining below Battery status
-            DropletSettingsCard {
-                DropletToggleRow(
-                    title: "Show time remaining",
-                    subtitle: "Estimates time remaining on battery or until full charge.",
-                    isOn: droplet.showsTimeRemainingBinding
-                )
-            }
         }
     }
 }
+

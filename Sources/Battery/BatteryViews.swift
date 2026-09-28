@@ -100,6 +100,9 @@ public struct BatteryWidgetView: View {
     }
 
     private var statusDotColor: Color {
+        guard monitor.hasInternalBattery else {
+            return Color(red: 0.20, green: 0.84, blue: 0.45)
+        }
         if monitor.isCharging || monitor.isCharged || (monitor.isACConnected && monitor.percentage == 100) {
             return Color(red: 0.20, green: 0.84, blue: 0.45) // Green
         } else if monitor.lowPowerModeActive || monitor.percentage <= 20 {
@@ -110,45 +113,39 @@ public struct BatteryWidgetView: View {
     }
 
     public var body: some View {
-        ZStack {
-            // Distinct outer container with continuous radius covering the slot end-to-end
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.white.opacity(0.06))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
-                )
-
-            // Content structured end-to-end and center-aligned
-            VStack(spacing: 0) {
-                // Header row
-                HStack(spacing: DroppySpacing.xsm) {
-                    Image(systemName: monitor.headerIconName)
-                        .font(.system(size: 11, weight: .medium))
-                    Text("Battery")
-                        .font(.system(size: 11, weight: .semibold))
-                    Spacer(minLength: 0)
-                }
-                .foregroundStyle(AdaptiveColors.notchSurfaceSecondaryText)
-                .padding(.horizontal, 14)
-                .padding(.top, 10)
-
-                Spacer(minLength: 0)
-
-                // Main composition
-                if context.isCompact {
-                    pairedComposition
-                } else {
-                    soloComposition
-                }
-
+        VStack(spacing: 0) {
+            // Header row
+            HStack(spacing: DroppySpacing.xsm) {
+                Image(systemName: monitor.headerIconName)
+                    .font(.system(size: 11, weight: .medium))
+                Text(monitor.hasInternalBattery ? "Battery" : "Power")
+                    .font(.system(size: 11, weight: .semibold))
                 Spacer(minLength: 0)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .foregroundStyle(AdaptiveColors.notchSurfaceSecondaryText)
+
+            Spacer(minLength: 0)
+
+            // Main composition
+            if context.isCompact {
+                pairedComposition
+            } else {
+                soloComposition
+            }
+
+            Spacer(minLength: 0)
         }
+        .padding(context.contentInsets)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
-            monitor.refresh()
+            if !context.isPreview {
+                droplet.widgetDidAppear()
+            }
+        }
+        .onDisappear {
+            if !context.isPreview {
+                droplet.widgetDidDisappear()
+            }
         }
         .onChange(of: context.isShelfTransitioning) { _, transitioning in
             if !transitioning {
@@ -160,25 +157,37 @@ public struct BatteryWidgetView: View {
     // MARK: - Paired Composition (Slot width ~210, height ~106)
     private var pairedComposition: some View {
         VStack(alignment: .center, spacing: 6) {
-            // Large, prominent, center-aligned battery gauge + percentage
-            HStack(alignment: .center, spacing: DroppySpacing.md) {
-                SmoothBatteryShape(
-                    percentage: monitor.percentage,
-                    isCharging: monitor.isCharging,
-                    isLowPower: monitor.lowPowerModeActive,
-                    width: 72,
-                    height: 32
-                )
+            if monitor.hasInternalBattery {
+                // Large, prominent, center-aligned battery gauge + percentage
+                HStack(alignment: .center, spacing: DroppySpacing.md) {
+                    SmoothBatteryShape(
+                        percentage: monitor.percentage,
+                        isCharging: monitor.isCharging,
+                        isLowPower: monitor.lowPowerModeActive,
+                        width: 72,
+                        height: 32
+                    )
 
-                HStack(alignment: .firstTextBaseline, spacing: 2) {
-                    Text("\(monitor.percentage)")
-                        .font(.system(size: 30, weight: .bold, design: .rounded))
-                        .monospacedDigit()
+                    HStack(alignment: .firstTextBaseline, spacing: 2) {
+                        Text("\(monitor.percentage)")
+                            .font(.system(size: 30, weight: .bold, design: .rounded))
+                            .monospacedDigit()
+                            .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
+
+                        Text("%")
+                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .foregroundStyle(AdaptiveColors.notchSurfaceSecondaryText)
+                    }
+                }
+            } else {
+                HStack(alignment: .center, spacing: DroppySpacing.md) {
+                    Image(systemName: "powerplug.fill")
+                        .font(.system(size: 28))
                         .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
 
-                    Text("%")
-                        .font(.system(size: 14, weight: .semibold, design: .rounded))
-                        .foregroundStyle(AdaptiveColors.notchSurfaceSecondaryText)
+                    Text("AC Power")
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
                 }
             }
 
@@ -195,8 +204,6 @@ public struct BatteryWidgetView: View {
             .lineLimit(1)
         }
         .frame(maxWidth: .infinity, alignment: .center)
-        .padding(.horizontal, 10)
-        .padding(.bottom, 6)
     }
 
     // MARK: - Solo Composition (Full width ~420, height ~106)
@@ -204,24 +211,36 @@ public struct BatteryWidgetView: View {
         HStack(alignment: .center, spacing: DroppySpacing.xl) {
             // Left Column: Big centered battery gauge + percentage + state
             VStack(alignment: .center, spacing: 6) {
-                HStack(alignment: .center, spacing: DroppySpacing.md) {
-                    SmoothBatteryShape(
-                        percentage: monitor.percentage,
-                        isCharging: monitor.isCharging,
-                        isLowPower: monitor.lowPowerModeActive,
-                        width: 82,
-                        height: 36
-                    )
+                if monitor.hasInternalBattery {
+                    HStack(alignment: .center, spacing: DroppySpacing.md) {
+                        SmoothBatteryShape(
+                            percentage: monitor.percentage,
+                            isCharging: monitor.isCharging,
+                            isLowPower: monitor.lowPowerModeActive,
+                            width: 82,
+                            height: 36
+                        )
 
-                    HStack(alignment: .firstTextBaseline, spacing: 2) {
-                        Text("\(monitor.percentage)")
-                            .font(.system(size: 34, weight: .bold, design: .rounded))
-                            .monospacedDigit()
+                        HStack(alignment: .firstTextBaseline, spacing: 2) {
+                            Text("\(monitor.percentage)")
+                                .font(.system(size: 34, weight: .bold, design: .rounded))
+                                .monospacedDigit()
+                                .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
+
+                            Text("%")
+                                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                .foregroundStyle(AdaptiveColors.notchSurfaceSecondaryText)
+                        }
+                    }
+                } else {
+                    HStack(alignment: .center, spacing: DroppySpacing.md) {
+                        Image(systemName: "powerplug.fill")
+                            .font(.system(size: 32))
                             .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
 
-                        Text("%")
-                            .font(.system(size: 16, weight: .semibold, design: .rounded))
-                            .foregroundStyle(AdaptiveColors.notchSurfaceSecondaryText)
+                        Text("AC Power")
+                            .font(.system(size: 22, weight: .bold, design: .rounded))
+                            .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
                     }
                 }
 
@@ -232,7 +251,7 @@ public struct BatteryWidgetView: View {
 
                     Text(monitor.stateSubtitle)
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
+                        .foregroundStyle(monitor.isCharging ? Color(red: 0.20, green: 0.84, blue: 0.45) : AdaptiveColors.notchSurfacePrimaryText)
                 }
                 .lineLimit(1)
             }
@@ -241,15 +260,17 @@ public struct BatteryWidgetView: View {
             // Right Column: Power details & specs
             VStack(alignment: .leading, spacing: DroppySpacing.xs) {
                 detailRow(label: "Power source", value: monitor.powerSourceState)
-                detailRow(label: "Low power mode", value: monitor.lowPowerModeActive ? "On" : "Off")
-                detailRow(label: "Condition", value: monitor.batteryHealth)
+                if monitor.hasInternalBattery {
+                    detailRow(label: "Low power mode", value: monitor.lowPowerModeActive ? "On" : "Off")
+                    detailRow(label: "Condition", value: monitor.batteryHealth)
+                } else {
+                    detailRow(label: "Battery", value: "Not Present")
+                    detailRow(label: "Low power mode", value: monitor.lowPowerModeActive ? "On" : "Off")
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.trailing, 10)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-        .padding(.horizontal, 14)
-        .padding(.bottom, 6)
     }
 
     private func detailRow(label: String, value: String) -> some View {

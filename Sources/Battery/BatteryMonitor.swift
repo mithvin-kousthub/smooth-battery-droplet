@@ -24,9 +24,10 @@ public final class BatteryMonitor: ObservableObject {
     private var notifyTokens: [Int32] = []
     private var lpmNotifyToken: Int32 = -1
     private var isMonitoring: Bool = false
+    private var isWidgetVisible: Bool = false
 
     public init() {
-        start()
+        // Monitoring starts exclusively from droplet.activate(host:)
     }
 
     public func start() {
@@ -68,11 +69,12 @@ public final class BatteryMonitor: ObservableObject {
 
         for name in kernelNotifications {
             var token: Int32 = 0
-            let status = notify_register_dispatch(name, &token, DispatchQueue.main) { [weak self] t in
+            let status = notify_register_dispatch(name, &token, DispatchQueue.main) { [weak self] _ in
+                guard let self else { return }
                 if name == "com.apple.system.lowpowermode" {
-                    self?.updateLowPowerMode()
+                    self.updateLowPowerMode()
                 }
-                self?.refresh()
+                self.refresh()
             }
             if status == NOTIFY_STATUS_OK {
                 if name == "com.apple.system.lowpowermode" {
@@ -86,8 +88,9 @@ public final class BatteryMonitor: ObservableObject {
         NotificationCenter.default.publisher(for: NSNotification.Name.NSProcessInfoPowerStateDidChange)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                self?.updateLowPowerMode()
-                self?.refresh()
+                guard let self else { return }
+                self.updateLowPowerMode()
+                self.refresh()
             }
             .store(in: &workspaceCancellables)
 
@@ -100,18 +103,46 @@ public final class BatteryMonitor: ObservableObject {
             .sink { [weak self] _ in self?.refresh() }
             .store(in: &workspaceCancellables)
 
-        // 5. Ultra-responsive 0.5-second timer fallback to guarantee real-time accuracy
-        periodicTimer = Timer.publish(every: 0.5, on: .main, in: .common)
+        if isWidgetVisible {
+            startFallbackTimer()
+        }
+    }
+
+    /// Visibility-gated polling: Only run fallback timer while the widget is visible on screen.
+    public func setWidgetVisible(_ visible: Bool) {
+        guard isWidgetVisible != visible else { return }
+        isWidgetVisible = visible
+
+        if visible {
+            refresh()
+            if isMonitoring {
+                startFallbackTimer()
+            }
+        } else {
+            stopFallbackTimer()
+        }
+    }
+
+    private func startFallbackTimer() {
+        stopFallbackTimer()
+        // Gentle 10-second timer fallback active ONLY while widget is visible
+        periodicTimer = Timer.publish(every: 10.0, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in
-                self?.updateLowPowerMode()
                 self?.refresh()
             }
+    }
+
+    private func stopFallbackTimer() {
+        periodicTimer?.cancel()
+        periodicTimer = nil
     }
 
     public func stop() {
         guard isMonitoring else { return }
         isMonitoring = false
+
+        stopFallbackTimer()
 
         if let runLoopSource {
             CFRunLoopRemoveSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
@@ -125,21 +156,16 @@ public final class BatteryMonitor: ObservableObject {
         lpmNotifyToken = -1
 
         workspaceCancellables.removeAll()
-        periodicTimer?.cancel()
-        periodicTimer = nil
     }
 
     public func refresh() {
+        updateLowPowerMode()
+
         guard let snapshot = IOPSCopyPowerSourcesInfo()?.takeRetainedValue(),
               let sources = IOPSCopyPowerSourcesList(snapshot)?.takeRetainedValue() as? [CFTypeRef],
               !sources.isEmpty else {
             // Desktop Mac with no battery or unable to copy power sources
-            self.hasInternalBattery = false
-            self.percentage = 100
-            self.isACConnected = true
-            self.isCharging = false
-            self.isCharged = true
-            self.powerSourceState = "AC Power"
+            applyBatterylessState()
             return
         }
 
@@ -201,6 +227,21 @@ public final class BatteryMonitor: ObservableObject {
         }
 
         self.hasInternalBattery = foundBattery
+        if !foundBattery {
+            applyBatterylessState()
+        }
+    }
+
+    private func applyBatterylessState() {
+        self.hasInternalBattery = false
+        self.percentage = 100
+        self.isACConnected = true
+        self.isCharging = false
+        self.isCharged = true
+        self.powerSourceState = "Power Adapter"
+        self.batteryHealth = "N/A"
+        self.timeRemainingMinutes = nil
+        self.timeToFullChargeMinutes = nil
     }
 
     /// Instantaneous detection of Low Power Mode via Foundation ProcessInfo and Darwin state
@@ -248,6 +289,9 @@ public final class BatteryMonitor: ObservableObject {
 
     /// Header SF symbol matching current state and level.
     public var headerIconName: String {
+        guard hasInternalBattery else {
+            return "powerplug"
+        }
         if isCharging {
             return "battery.100percent.bolt"
         } else if percentage >= 88 {
@@ -265,6 +309,9 @@ public final class BatteryMonitor: ObservableObject {
 
     /// User-friendly formatted time duration, ensuring "Show time remaining" always delivers accurate estimates.
     public var formattedDuration: String? {
+        guard hasInternalBattery else {
+            return nil
+        }
         if isCharging {
             if let toFull = timeToFullChargeMinutes, toFull > 0 {
                 let h = toFull / 60
@@ -298,6 +345,9 @@ public final class BatteryMonitor: ObservableObject {
 
     /// Primary state subtitle.
     public var stateSubtitle: String {
+        guard hasInternalBattery else {
+            return "Power Adapter"
+        }
         if isCharging {
             return "Charging"
         } else if isCharged || (isACConnected && percentage == 100) {

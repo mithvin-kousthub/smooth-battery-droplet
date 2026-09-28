@@ -9,29 +9,36 @@ public struct BatterySettingsView: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: DroppySpacing.lg) {
-            // Battery Status Card
+        DropletSettingsPane {
             DropletSettingsCard {
-                DropletControlRow(title: "Battery level") {
-                    DropletValuePill(text: "\(droplet.monitor.percentage)%")
-                }
+                if droplet.monitor.hasInternalBattery {
+                    DropletControlRow(title: "Battery level") {
+                        DropletValuePill(text: "\(droplet.monitor.percentage)%")
+                    }
 
-                DropletSettingsDivider()
+                    DropletControlRow(title: "Power state") {
+                        DropletValuePill(text: droplet.monitor.stateSubtitle)
+                    }
 
-                DropletControlRow(title: "Power state") {
-                    DropletValuePill(text: droplet.monitor.stateSubtitle)
-                }
+                    DropletControlRow(title: "Low power mode") {
+                        DropletValuePill(text: droplet.monitor.lowPowerModeActive ? "On" : "Off")
+                    }
 
-                DropletSettingsDivider()
+                    DropletControlRow(title: "Battery condition") {
+                        DropletValuePill(text: droplet.monitor.batteryHealth)
+                    }
+                } else {
+                    DropletControlRow(title: "Power source") {
+                        DropletValuePill(text: droplet.monitor.powerSourceState)
+                    }
 
-                DropletControlRow(title: "Low power mode") {
-                    DropletValuePill(text: droplet.monitor.lowPowerModeActive ? "On" : "Off")
-                }
+                    DropletControlRow(title: "Battery") {
+                        DropletValuePill(text: "Not Present")
+                    }
 
-                DropletSettingsDivider()
-
-                DropletControlRow(title: "Battery condition") {
-                    DropletValuePill(text: droplet.monitor.batteryHealth)
+                    DropletControlRow(title: "Low power mode") {
+                        DropletValuePill(text: droplet.monitor.lowPowerModeActive ? "On" : "Off")
+                    }
                 }
             }
         }

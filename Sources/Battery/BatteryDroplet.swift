@@ -23,6 +23,8 @@ public final class BatteryDroplet: NSObject, ObservableObject, Droplet {
     private var host: DropletHost?
     private var cancellables = Set<AnyCancellable>()
 
+    private var visibleWidgetCount = 0
+
     // MARK: - Lifecycle
 
     public func activate(host: DropletHost) throws {
@@ -40,9 +42,24 @@ public final class BatteryDroplet: NSObject, ObservableObject, Droplet {
     }
 
     public func deactivate() {
+        visibleWidgetCount = 0
         cancellables.removeAll()
         monitor.stop()
         host = nil
+    }
+
+    // MARK: - Visibility Tracking
+
+    public func widgetDidAppear() {
+        visibleWidgetCount += 1
+        monitor.setWidgetVisible(true)
+    }
+
+    public func widgetDidDisappear() {
+        visibleWidgetCount = max(0, visibleWidgetCount - 1)
+        if visibleWidgetCount == 0 {
+            monitor.setWidgetVisible(false)
+        }
     }
 }
 

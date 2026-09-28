@@ -114,16 +114,15 @@ public struct BatteryWidgetView: View {
 
     public var body: some View {
         VStack(spacing: 0) {
-            // Header row
+            // Header row - Center-aligned to avoid clipping by droplet corner radius
             HStack(spacing: DroppySpacing.sm) {
                 Image(systemName: monitor.headerIconName)
                     .font(.system(size: 11, weight: .medium))
                 Text(monitor.hasInternalBattery ? "Battery" : "Power")
                     .font(.system(size: 11, weight: .semibold))
-                Spacer(minLength: 0)
             }
             .foregroundStyle(AdaptiveColors.notchSurfaceSecondaryText)
-            .padding(.leading, DroppySpacing.smd)
+            .frame(maxWidth: .infinity, alignment: .center)
             .padding(.top, DroppySpacing.xs)
 
             Spacer(minLength: 0)

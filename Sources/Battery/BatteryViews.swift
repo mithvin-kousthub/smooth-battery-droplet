@@ -115,7 +115,7 @@ public struct BatteryWidgetView: View {
     public var body: some View {
         VStack(spacing: 0) {
             // Header row
-            HStack(spacing: DroppySpacing.xsm) {
+            HStack(spacing: DroppySpacing.sm) {
                 Image(systemName: monitor.headerIconName)
                     .font(.system(size: 11, weight: .medium))
                 Text(monitor.hasInternalBattery ? "Battery" : "Power")
@@ -123,6 +123,8 @@ public struct BatteryWidgetView: View {
                 Spacer(minLength: 0)
             }
             .foregroundStyle(AdaptiveColors.notchSurfaceSecondaryText)
+            .padding(.leading, DroppySpacing.smd)
+            .padding(.top, DroppySpacing.xs)
 
             Spacer(minLength: 0)
 

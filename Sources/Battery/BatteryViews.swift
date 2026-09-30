@@ -156,7 +156,7 @@ public struct BatteryWidgetView: View {
 
     // MARK: - Paired Composition (Slot width ~210, height ~106)
     private var pairedComposition: some View {
-        VStack(alignment: .center, spacing: 6) {
+        VStack(alignment: .center, spacing: DroppySpacing.xsm) {
             if monitor.hasInternalBattery {
                 // Large, prominent, center-aligned battery gauge + percentage
                 HStack(alignment: .center, spacing: DroppySpacing.md) {
@@ -192,7 +192,7 @@ public struct BatteryWidgetView: View {
             }
 
             // Center-aligned battery status directly below the battery
-            HStack(spacing: 5) {
+            HStack(spacing: DroppySpacing.xs) {
                 Circle()
                     .fill(statusDotColor)
                     .frame(width: 6, height: 6)
@@ -210,7 +210,7 @@ public struct BatteryWidgetView: View {
     private var soloComposition: some View {
         HStack(alignment: .center, spacing: DroppySpacing.xl) {
             // Left Column: Big centered battery gauge + percentage + state
-            VStack(alignment: .center, spacing: 6) {
+            VStack(alignment: .center, spacing: DroppySpacing.xsm) {
                 if monitor.hasInternalBattery {
                     HStack(alignment: .center, spacing: DroppySpacing.md) {
                         SmoothBatteryShape(
@@ -244,7 +244,7 @@ public struct BatteryWidgetView: View {
                     }
                 }
 
-                HStack(spacing: 5) {
+                HStack(spacing: DroppySpacing.xs) {
                     Circle()
                         .fill(statusDotColor)
                         .frame(width: 6, height: 6)

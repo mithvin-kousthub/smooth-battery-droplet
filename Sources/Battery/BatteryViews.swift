@@ -49,13 +49,13 @@ public struct SmoothBatteryShape: View {
                     .strokeBorder(AdaptiveColors.notchSurfacePrimaryText.opacity(0.35), lineWidth: 1.8)
                     .background(
                         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                            .fill(Color.black.opacity(0.3))
+                            .fill(AdaptiveColors.notchSurfacePrimaryText.opacity(0.06))
                     )
 
                 // Inner track + liquid fill
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: innerRadius, style: .continuous)
-                        .fill(Color.white.opacity(0.06))
+                        .fill(AdaptiveColors.notchSurfacePrimaryText.opacity(0.08))
 
                     if percentage > 0 {
                         RoundedRectangle(cornerRadius: max(1.5, innerRadius - 1), style: .continuous)
@@ -113,17 +113,16 @@ public struct BatteryWidgetView: View {
     }
 
     public var body: some View {
-        VStack(spacing: 0) {
-            // Header row - Center-aligned to avoid clipping by droplet corner radius
-            HStack(spacing: DroppySpacing.sm) {
+        VStack(alignment: .leading, spacing: DroppySpacing.sm) {
+            // Header row - leading aligned, 12pt secondary
+            HStack(spacing: DroppySpacing.xsm) {
                 Image(systemName: monitor.headerIconName)
-                    .font(.system(size: 11, weight: .medium))
+                    .font(.system(size: 12, weight: .medium))
                 Text(monitor.hasInternalBattery ? "Battery" : "Power")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(size: 12, weight: .semibold))
+                Spacer(minLength: 0)
             }
             .foregroundStyle(AdaptiveColors.notchSurfaceSecondaryText)
-            .frame(maxWidth: .infinity, alignment: .center)
-            .padding(.top, DroppySpacing.xs)
 
             Spacer(minLength: 0)
 
@@ -137,7 +136,7 @@ public struct BatteryWidgetView: View {
             Spacer(minLength: 0)
         }
         .padding(context.contentInsets)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .onAppear {
             if !context.isPreview {
                 droplet.widgetDidAppear()
@@ -186,7 +185,7 @@ public struct BatteryWidgetView: View {
                         .font(.system(size: 28))
                         .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
 
-                    Text("AC Power")
+                    Text("AC power")
                         .font(.system(size: 20, weight: .bold, design: .rounded))
                         .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
                 }
@@ -239,7 +238,7 @@ public struct BatteryWidgetView: View {
                             .font(.system(size: 32))
                             .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
 
-                        Text("AC Power")
+                        Text("AC power")
                             .font(.system(size: 22, weight: .bold, design: .rounded))
                             .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
                     }
@@ -265,7 +264,7 @@ public struct BatteryWidgetView: View {
                     detailRow(label: "Low power mode", value: monitor.lowPowerModeActive ? "On" : "Off")
                     detailRow(label: "Condition", value: monitor.batteryHealth)
                 } else {
-                    detailRow(label: "Battery", value: "Not Present")
+                    detailRow(label: "Battery", value: "Not present")
                     detailRow(label: "Low power mode", value: monitor.lowPowerModeActive ? "On" : "Off")
                 }
             }

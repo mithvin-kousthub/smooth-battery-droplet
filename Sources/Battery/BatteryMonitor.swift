@@ -11,7 +11,7 @@ public final class BatteryMonitor: ObservableObject {
     @Published public private(set) var isCharging: Bool = false
     @Published public private(set) var isCharged: Bool = false
     @Published public private(set) var isACConnected: Bool = true
-    @Published public private(set) var powerSourceState: String = "AC Power"
+    @Published public private(set) var powerSourceState: String = "AC power"
     @Published public private(set) var timeRemainingMinutes: Int? = nil
     @Published public private(set) var timeToFullChargeMinutes: Int? = nil
     @Published public private(set) var lowPowerModeActive: Bool = false
@@ -192,7 +192,7 @@ public final class BatteryMonitor: ObservableObject {
                 self.isCharged = (desc[kIOPSIsChargedKey] as? Bool) ?? (self.percentage == 100 && (desc[kIOPSPowerSourceStateKey] as? String == kIOPSACPowerValue))
                 let psState = desc[kIOPSPowerSourceStateKey] as? String ?? kIOPSACPowerValue
                 self.isACConnected = (psState == kIOPSACPowerValue)
-                self.powerSourceState = self.isACConnected ? "Power Adapter" : "Battery Power"
+                self.powerSourceState = self.isACConnected ? "Power adapter" : "Battery power"
 
                 // Time remaining on battery & time to full charge with AppleSmartBattery fallback
                 let smartBattery = self.readAppleSmartBatteryDetails()
@@ -238,7 +238,7 @@ public final class BatteryMonitor: ObservableObject {
         self.isACConnected = true
         self.isCharging = false
         self.isCharged = true
-        self.powerSourceState = "Power Adapter"
+        self.powerSourceState = "Power adapter"
         self.batteryHealth = "N/A"
         self.timeRemainingMinutes = nil
         self.timeToFullChargeMinutes = nil
@@ -333,7 +333,7 @@ public final class BatteryMonitor: ObservableObject {
                     let m = toEmpty % 60
                     return h > 0 ? "~\(h)h \(m)m on battery" : "~\(m)m on battery"
                 }
-                return "AC Power"
+                return "AC power"
             }
         } else if let toEmpty = timeRemainingMinutes, toEmpty > 0 {
             let h = toEmpty / 60
@@ -346,16 +346,16 @@ public final class BatteryMonitor: ObservableObject {
     /// Primary state subtitle.
     public var stateSubtitle: String {
         guard hasInternalBattery else {
-            return "Power Adapter"
+            return "Power adapter"
         }
         if isCharging {
             return "Charging"
         } else if isCharged || (isACConnected && percentage == 100) {
-            return "Fully Charged"
+            return "Fully charged"
         } else if isACConnected {
-            return "Not Charging"
+            return "Not charging"
         } else {
-            return "On Battery"
+            return "On battery"
         }
     }
 }

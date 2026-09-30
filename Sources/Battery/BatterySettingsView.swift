@@ -33,7 +33,7 @@ public struct BatterySettingsView: View {
                     }
 
                     DropletControlRow(title: "Battery") {
-                        DropletValuePill(text: "Not Present")
+                        DropletValuePill(text: "Not present")
                     }
 
                     DropletControlRow(title: "Low power mode") {
